@@ -21,7 +21,7 @@ pure_dsa = { git = "https://github.com/bluetox/pure_dsa" }
 ```
 ## 📦 Usage
 
-```toml
+```rust
 use pure_dsa::Algorithm;
 
 let algo = Algorithm::Mode3;
