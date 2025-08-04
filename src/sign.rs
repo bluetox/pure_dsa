@@ -126,25 +126,21 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
   #[cfg(not(feature = "random"))]
   shake256(&mut rhoprime, &keymu, CRHBYTES, SEEDBYTES + CRHBYTES);
 
-  // Expand matrix and transform vectors
   polyvec_matrix_expand::<P>(&mut mat, &rho);
   polyvecl_ntt::<P>(&mut s1);
   polyveck_ntt::<P>(&mut s2);
   polyveck_ntt::<P>(&mut t0);
 
   loop {
-    // Sample intermediate vector y
     polyvecl_uniform_gamma1::<P>(&mut y, &rhoprime, nonce);
     nonce += 1;
 
-    // Matrix-vector multiplication
     let mut z = y;
     polyvecl_ntt::<P>(&mut z);
     polyvec_matrix_pointwise_montgomery::<P>(&mut w1, &mat, &z);
     polyveck_reduce::<P>(&mut w1);
     polyveck_invntt_tomont::<P>(&mut w1);
 
-    // Decompose w and call the random oracle
     polyveck_caddq::<P>(&mut w1);
     let w1_clone = w1.clone();
     polyveck_decompose::<P>(&mut w1, &mut w0, &w1_clone);
@@ -160,7 +156,6 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
 
     poly_ntt::<P>(&mut cp);
 
-    // Compute z, reject if it reveals secret
     polyvecl_pointwise_poly_montgomery::<P>(&mut z, &cp, &s1);
     polyvecl_invntt_tomont::<P>(&mut z);
     let z_clone = z.clone();
@@ -170,8 +165,6 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
       continue;
     }
 
-    /* Check that subtracting cs2 does not change high bits of w and low bits
-     * do not reveal secret information */
     polyveck_pointwise_poly_montgomery::<P>(&mut h, &cp, &s2);
     polyveck_invntt_tomont::<P>(&mut h);
     let w0_clone = w0.clone();
@@ -181,7 +174,6 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
       continue;
     }
 
-    // Compute hints for w1
     polyveck_pointwise_poly_montgomery::<P>(&mut h, &cp, &t0);
     polyveck_invntt_tomont::<P>(&mut h);
     polyveck_reduce::<P>(&mut h);
@@ -195,7 +187,6 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
       continue;
     }
 
-    // Write signature
     pack_sig::<P>(sig, None, &z, &h);
     return;
   }
@@ -234,14 +225,12 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
     return Err("Invalid z".to_string());
   }
 
-  // Compute CRH(CRH(rho, t1), msg)
   shake256(&mut mu, pk, SEEDBYTES, P::PUBLIC_KEY_BYTES);
   state.shake256_absorb(&mu, SEEDBYTES);
   state.shake256_absorb(m, m.len());
   state.shake256_finalize();
   state.shake256_squeeze(&mut mu, CRHBYTES);
 
-  // Matrix-vector multiplication; compute Az - c2^dt1
   poly_challenge::<P>(&mut cp, &c);
   polyvec_matrix_expand::<P>(&mut mat, &rho);
 
@@ -258,19 +247,17 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
   polyveck_reduce::<P>(&mut w1);
   polyveck_invntt_tomont::<P>(&mut w1);
 
-  // Reconstruct w1
   polyveck_caddq::<P>(&mut w1);
   let w1_clone = w1.clone();
   polyveck_use_hint::<P>(&mut w1, &w1_clone, &h);
   polyveck_pack_w1::<P>(&mut buf, &w1);
 
-  // Call random oracle and verify challenge
   state.init();
   state.shake256_absorb(&mu, CRHBYTES);
   state.shake256_absorb(&buf, P::K * P::polyw1_packedbytes());
   state.shake256_finalize();
   state.shake256_squeeze(&mut c2, SEEDBYTES);
-  // Doesn't require constant time equality check
+
   if c != c2 {
     Err("Invalid signature".to_string())
   } else {

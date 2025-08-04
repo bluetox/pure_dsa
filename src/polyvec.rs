@@ -96,8 +96,6 @@ pub fn polyvec_matrix_pointwise_montgomery<P: DilithiumParams>(
     }
 }
 
-//*********** Vectors of polynomials of length L ****************************
-
 pub fn polyvecl_uniform_eta<P: DilithiumParams>(
   v: &mut Polyvecl, 
   seed: &[u8], 
@@ -123,8 +121,6 @@ pub fn polyvecl_reduce<P: DilithiumParams>(v: &mut Polyvecl) {
   }
 }
 
-/// Add vectors of polynomials of length L.
-/// No modular reduction is performed.
 pub fn polyvecl_add(w: &mut Polyvecl, u: &Polyvecl, v: &Polyvecl) {
   let w_vec = vec_from_polyvecl_mut(w);
   let u_vec = vec_from_polyvecl(u);
@@ -134,8 +130,6 @@ pub fn polyvecl_add(w: &mut Polyvecl, u: &Polyvecl, v: &Polyvecl) {
   }
 }
 
-/// Forward NTT of all polynomials in vector of length L. Output
-/// coefficients can be up to 16*Q larger than input coefficients.*
 pub fn polyvecl_ntt<P: DilithiumParams>(v: &mut Polyvecl) {
     let v_vec = vec_from_polyvecl_mut(v);
     for i in 0..v_vec.len() {
@@ -162,11 +156,6 @@ pub fn polyvecl_pointwise_poly_montgomery<P: DilithiumParams>(
   }
 }
 
-/// Pointwise multiply vectors of polynomials of length L, multiply
-/// resulting vector by 2^{-32} and add (accumulate) polynomials
-/// in it. Input/output vectors are in NTT domain representation.
-/// Input coefficients are assumed to be less than 22*Q. Output
-/// coeffcient are less than 2*L*Q.
 pub fn polyvecl_pointwise_acc_montgomery<P: DilithiumParams>(
   w: &mut Poly,
   u: &Polyvecl,
@@ -183,10 +172,6 @@ pub fn polyvecl_pointwise_acc_montgomery<P: DilithiumParams>(
   }
 }
 
-/// Check infinity norm of polynomials in vector of length L.
-/// Assumes input coefficients to be standard representatives.
-/// Returns 0 if norm of all polynomials is strictly smaller than B and 1
-/// otherwise.
 pub fn polyvecl_chknorm<P: DilithiumParams>(v: &Polyvecl, bound: i32) -> u8 {
   let v_vec = vec_from_polyvecl(v);
   for i in 0..v_vec.len() {
@@ -197,8 +182,6 @@ pub fn polyvecl_chknorm<P: DilithiumParams>(v: &Polyvecl, bound: i32) -> u8 {
   return 0;
 }
 
-//*********** Vectors of polynomials of length K ****************************
-
 pub fn polyveck_uniform_eta<P: DilithiumParams>(v: &mut Polyveck, seed: &[u8], mut nonce: u16) {
   let v_vec = vec_from_polyveck_mut(v);
   for i in 0..v_vec.len() {
@@ -207,8 +190,6 @@ pub fn polyveck_uniform_eta<P: DilithiumParams>(v: &mut Polyveck, seed: &[u8], m
   }
 }
 
-/// Reduce coefficients of polynomials in vector of length K
-/// to representatives in [0,2*Q].
 pub fn polyveck_reduce<P: DilithiumParams>(v: &mut Polyveck) {
   let v_vec = vec_from_polyveck_mut(v);
   for i in 0..v_vec.len() {
@@ -216,8 +197,6 @@ pub fn polyveck_reduce<P: DilithiumParams>(v: &mut Polyveck) {
   }
 }
 
-/// For all coefficients of polynomials in vector of length K
-/// add Q if coefficient is negative.
 pub fn polyveck_caddq<P: DilithiumParams>(v: &mut Polyveck) {
   let v_vec = vec_from_polyveck_mut(v);
   
@@ -226,8 +205,6 @@ pub fn polyveck_caddq<P: DilithiumParams>(v: &mut Polyveck) {
   }
 }
 
-/// Add vectors of polynomials of length K.
-/// No modular reduction is performed.
 pub fn polyveck_add(w: &mut Polyveck, u: &Polyveck,v: &Polyveck) {
   let w_vec = vec_from_polyveck_mut(w);
   let v_vec = vec_from_polyveck(v);
@@ -237,9 +214,6 @@ pub fn polyveck_add(w: &mut Polyveck, u: &Polyveck,v: &Polyveck) {
   }
 }
 
-/// Subtract vectors of polynomials of length K.
-/// Assumes coefficients of polynomials in second input vector
-/// to be less than 2*Q. No modular reduction is performed.
 pub fn polyveck_sub(w: &mut Polyveck, u: &Polyveck, v: &Polyveck) {
   let w_vec = vec_from_polyveck_mut(w);
   let v_vec = vec_from_polyveck(v);
@@ -250,8 +224,6 @@ pub fn polyveck_sub(w: &mut Polyveck, u: &Polyveck, v: &Polyveck) {
   }
 }
 
-/// Multiply vector of polynomials of Length K by 2^D without modular
-/// reduction. Assumes input coefficients to be less than 2^{32-D}.
 pub fn polyveck_shiftl(v: &mut Polyveck) {
   let v_vec = vec_from_polyveck_mut(v);
   for i in 0..v_vec.len() {
@@ -259,8 +231,6 @@ pub fn polyveck_shiftl(v: &mut Polyveck) {
   }
 }
 
-/// Forward NTT of all polynomials in vector of length K. Output
-/// coefficients can be up to 16*Q larger than input coefficients.
 pub fn polyveck_ntt<P: DilithiumParams>(v: &mut Polyveck) {
   let v_vec = vec_from_polyveck_mut(v);
   for i in 0..v_vec.len() {
@@ -268,9 +238,6 @@ pub fn polyveck_ntt<P: DilithiumParams>(v: &mut Polyveck) {
   }
 }
 
-/// Inverse NTT and multiplication by 2^{32} of polynomials
-/// in vector of length K. Input coefficients need to be less
-/// than 2*Q.
 pub fn polyveck_invntt_tomont<P: DilithiumParams>(v: &mut Polyveck) {
   let v_vec = vec_from_polyveck_mut(v);
   for i in 0..v_vec.len() {
@@ -290,11 +257,6 @@ pub fn polyveck_pointwise_poly_montgomery<P: DilithiumParams>(
   }
 }
 
-/// Check infinity norm of polynomials in vector of length K.
-/// Assumes input coefficients to be standard representatives.
-//
-/// Returns 0 if norm of all polynomials are strictly smaller than B and 1
-/// otherwise.
 pub fn polyveck_chknorm<P: DilithiumParams>(v: &Polyveck, bound: i32) -> u8 {
   let v_vec = vec_from_polyveck(v);
   for i in 0..v_vec.len() {
@@ -305,10 +267,6 @@ pub fn polyveck_chknorm<P: DilithiumParams>(v: &Polyveck, bound: i32) -> u8 {
   return 0;
 }
 
-/// For all coefficients a of polynomials in vector of length K,
-/// compute a0, a1 such that a mod Q = a1*2^D + a0
-/// with -2^{D-1} < a0 <= 2^{D-1}. Assumes coefficients to be
-/// standard representatives.
 pub fn polyveck_power2round<P: DilithiumParams>(v1: &mut Polyveck, v0: &mut Polyveck, v: &Polyveck) {
   let v1_vec = vec_from_polyveck_mut(v1);
   let v0_vec = vec_from_polyveck_mut(v0);
@@ -318,11 +276,6 @@ pub fn polyveck_power2round<P: DilithiumParams>(v1: &mut Polyveck, v0: &mut Poly
   }
 }
 
-/// For all coefficients a of polynomials in vector of length K,
-/// compute high and low bits a0, a1 such a mod Q = a1*ALPHA + a0
-/// with -ALPHA/2 < a0 <= ALPHA/2 except a1 = (Q-1)/ALPHA where we
-/// set a1 = 0 and -ALPHA/2 <= a0 = a mod Q - Q < 0.
-/// Assumes coefficients to be standard representatives.
 pub fn polyveck_decompose<P: DilithiumParams>(v1: &mut Polyveck, v0: &mut Polyveck, v: &Polyveck) {
   let v1_vec = vec_from_polyveck_mut(v1);
   let v0_vec = vec_from_polyveck_mut(v0);
@@ -332,9 +285,6 @@ pub fn polyveck_decompose<P: DilithiumParams>(v1: &mut Polyveck, v0: &mut Polyve
   }
 }
 
-/// Compute hint vector.
-///
-/// Returns number of 1 bits.
 pub fn polyveck_make_hint<P: DilithiumParams>(
   h: &mut Polyveck,
   v0: &Polyveck,
@@ -350,7 +300,6 @@ pub fn polyveck_make_hint<P: DilithiumParams>(
   s
 }
 
-/// Use hint vector to correct the high bits of input vector.
 pub fn polyveck_use_hint<P: DilithiumParams>(w: &mut Polyveck, u: &Polyveck, h: &Polyveck) {
   let w_vec = vec_from_polyveck_mut(w);
   let u_vec = vec_from_polyveck(u);

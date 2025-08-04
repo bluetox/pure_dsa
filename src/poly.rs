@@ -33,63 +33,44 @@ impl Default for Poly {
   }
 }
 
-/// Inplace reduction of all coefficients of polynomial to
-/// representative in [0,2*Q].
 pub fn poly_reduce<P: DilithiumParams>(a: &mut Poly) {
   for i in 0..N {
     a.coeffs[i] = reduce32::<P>(a.coeffs[i]);
   }
 }
 
-/// For all coefficients of in/out polynomial add Q if
-/// coefficient is negative.
 pub fn poly_caddq<P: DilithiumParams>(a: &mut Poly) {
   for i in 0..N {
     a.coeffs[i] = caddq::<P>(a.coeffs[i]);
   }
 }
 
-/// Add polynomials. No modular reduction is performed.
 pub fn poly_add(c: &mut Poly, a: &Poly, b: &Poly) {
   for i in 0..N {
     c.coeffs[i] = a.coeffs[i] + b.coeffs[i];
   }
 }
 
-/// Subtract polynomials. Assumes coefficients of second input
-/// polynomial to be less than 2*Q. No modular reduction is
-/// performed.
 pub fn poly_sub(c: &mut Poly, a: &Poly, b: &Poly) {
   for i in 0..N {
     c.coeffs[i] = a.coeffs[i] - b.coeffs[i];
   }
 }
 
-/// Multiply polynomial by 2^D without modular reduction. Assumes
-/// input coefficients to be less than 2^{32-D}.
 pub fn poly_shiftl(a: &mut Poly) {
   for i in 0..N {
     a.coeffs[i] <<= D;
   }
 }
 
-/// Inplace forward NTT. Output coefficients can be up to
-/// 16*Q larger than input coefficients.
 pub fn poly_ntt<P: DilithiumParams>(a: &mut Poly) {
   ntt::<P>(&mut a.coeffs);
 }
 
-/// Inplace inverse NTT and multiplication by 2^{32}.
-/// Input coefficients need to be less than 2*Q.
-/// Output coefficients are less than 2*Q.
 pub fn poly_invntt_tomont<P: DilithiumParams>(a: &mut Poly) {
   invntt_tomont::<P>(&mut a.coeffs);
 }
 
-/// Pointwise multiplication of polynomials in NTT domain
-/// representation and multiplication of resulting polynomial
-/// by 2^{-32}. Output coefficients are less than 2*Q if input
-/// coefficient are less than 22*Q.
 pub fn poly_pointwise_montgomery<P: DilithiumParams>(c: &mut Poly, a: &Poly, b: &Poly) {
   for i in 0..N {
     c.coeffs[i] = montgomery_reduce::<P>((a.coeffs[i] as i64) * b.coeffs[i] as i64);
@@ -165,9 +146,6 @@ pub fn rej_uniform(a: &mut [i32], len: u32, buf: &[u8], buflen: usize) -> u32 {
 const POLY_UNIFORM_NBLOCKS: usize =
   (768 + STREAM128_BLOCKBYTES - 1) / STREAM128_BLOCKBYTES;
 
-/// Sample polynomial with uniformly random coefficients
-/// in [0, Q-1] by performing rejection sampling using the
-/// output stream of SHAKE256(seed|nonce) or AES256CTR(seed,nonce).
 #[inline(always)]
 pub fn poly_uniform<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u16) {
   
@@ -197,8 +175,6 @@ pub fn poly_uniform<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u16) {
   }
 }
 
-/// Sample uniformly random coefficients in [-ETA, ETA] by
-/// performing rejection sampling using array of random bytes.
 pub fn rej_eta<P: DilithiumParams>(a: &mut [i32], len: usize, buf: &[u8], buflen: usize) -> u32 {
   let (mut ctr, mut pos) = (0usize, 0usize);
   let (mut t0, mut t1);
@@ -269,10 +245,6 @@ fn poly_uniform_gamma1_nblocks<P: DilithiumParams>() -> usize {
   (polyz_packedbytes + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES
 }
 
-/// Sample polynomial with uniformly random coefficients
-/// in [-(GAMMA1 - 1), GAMMA1 - 1] by performing rejection
-/// sampling on output stream of SHAKE256(seed|nonce)
-/// or AES256CTR(seed,nonce).
 pub fn poly_uniform_gamma1<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u16) {
   let mut buf = vec![0u8; poly_uniform_gamma1_nblocks::<P>() * STREAM256_BLOCKBYTES];
   let mut state = KeccakState::default();
@@ -285,13 +257,10 @@ pub fn poly_uniform_gamma1<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce:
   polyz_unpack::<P>(a, &mut buf);
 }
 
-/// Implementation of H. Samples polynomial with TAU nonzero
-/// coefficients in {-1,1} using the output stream of
-/// SHAKE256(seed).
 pub fn poly_challenge<P: DilithiumParams>(c: &mut Poly, seed: &[u8]) {
   let mut _signs = 0u64;
   let mut buf = [0u8; SHAKE256_RATE];
-  let mut state = KeccakState::default(); //shake256_init
+  let mut state = KeccakState::default();
 
   state.shake256_absorb(seed, SEEDBYTES);
   state.shake256_finalize();
@@ -301,7 +270,7 @@ pub fn poly_challenge<P: DilithiumParams>(c: &mut Poly, seed: &[u8]) {
     _signs |= (buf[i] as u64) << 8 * i;
   }
   let mut pos: usize = 8;
-  // let mut b = buf[pos];
+
   let mut b;
   c.coeffs.fill(0);
   for i in N - P::TAU..N {
@@ -322,8 +291,6 @@ pub fn poly_challenge<P: DilithiumParams>(c: &mut Poly, seed: &[u8]) {
   }
 }
 
-/// Bit-pack polynomial with coefficients in [-ETA,ETA].
-/// Input coefficients are assumed to lie in [Q-ETA,Q+ETA].
 pub fn polyeta_pack<P: DilithiumParams>(r: &mut [u8], a: &Poly) {
   let mut t = [0u8; 8];
   if P::ETA == 2 {
@@ -350,7 +317,6 @@ pub fn polyeta_pack<P: DilithiumParams>(r: &mut [u8], a: &Poly) {
   }
 }
 
-/// Unpack polynomial with coefficients in [-ETA,ETA].
 pub fn polyeta_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
   if P::ETA == 2 {
     for i in 0..N / 8 {
@@ -386,8 +352,6 @@ pub fn polyeta_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
   }
 }
 
-/// Bit-pack polynomial t1 with coefficients fitting in 10 bits.
-/// Input coefficients are assumed to be standard representatives.
 pub fn polyt1_pack(r: &mut [u8], a: &Poly) {
   for i in 0..N / 4 {
     r[5 * i + 0] = (a.coeffs[4 * i + 0] >> 0) as u8;
@@ -401,8 +365,6 @@ pub fn polyt1_pack(r: &mut [u8], a: &Poly) {
   }
 }
 
-/// Unpack polynomial t1 with 9-bit coefficients.
-/// Output coefficients are standard representatives.
 pub fn polyt1_unpack(r: &mut Poly, a: &[u8]) {
   for i in 0..N / 4 {
     r.coeffs[4 * i + 0] = (((a[5 * i + 0] >> 0) as u32
@@ -420,7 +382,6 @@ pub fn polyt1_unpack(r: &mut Poly, a: &[u8]) {
   }
 }
 
-/// Bit-pack polynomial t0 with coefficients in [-2^{D-1}, 2^{D-1}].
 pub fn polyt0_pack(r: &mut [u8], a: &Poly) {
   let mut t = [0i32; 8];
 
@@ -457,8 +418,6 @@ pub fn polyt0_pack(r: &mut [u8], a: &Poly) {
   }
 }
 
-/// Unpack polynomial t0 with coefficients in ]-2^{D-1}, 2^{D-1}].
-/// Output coefficients lie in ]Q-2^{D-1},Q+2^{D-1}].
 pub fn polyt0_unpack(r: &mut Poly, a: &[u8]) {
   for i in 0..N / 8 {
     r.coeffs[8 * i + 0] = a[13 * i + 0] as i32;
@@ -508,9 +467,6 @@ pub fn polyt0_unpack(r: &mut Poly, a: &[u8]) {
   }
 }
 
-/// Bit-pack polynomial z with coefficients
-/// in [-(GAMMA1 - 1), GAMMA1 - 1].
-/// Input coefficients are assumed to be standard representatives.*
 pub fn polyz_pack<P: DilithiumParams>(r: &mut [u8], a: &Poly) {
   let mut t = [0i32; 4];
   if P::GAMMA1 == (1 << 17) {
@@ -548,9 +504,6 @@ pub fn polyz_pack<P: DilithiumParams>(r: &mut [u8], a: &Poly) {
   }
 }
 
-/// Unpack polynomial z with coefficients
-/// in [-(GAMMA1 - 1), GAMMA1 - 1].
-/// Output coefficients are standard representatives.
 pub fn polyz_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
   if P::GAMMA1 == (1 << 17) {
     for i in 0..N / 4 {
@@ -597,8 +550,6 @@ pub fn polyz_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
   }
 }
 
-/// Bit-pack polynomial w1 with coefficients in [0, 15].
-/// Input coefficients are assumed to be standard representatives.
 pub fn polyw1_pack<P: DilithiumParams>(r: &mut [u8], a: &Poly) {
   if P::GAMMA2 == (Q - 1) / 88 {
     for i in 0..N / 4 {
