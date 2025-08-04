@@ -1,0 +1,13 @@
+[package]
+name = "pure_dsa"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hex = "0.4.3"
+rand = { version = "0.8", features = ["std", "getrandom"] }
+rand_core = "0.6"
+
+[lib]
+name = "pure_dsa"
+path = "src/lib.rs"
