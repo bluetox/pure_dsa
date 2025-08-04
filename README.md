@@ -22,7 +22,7 @@ pure_dsa = { git = "https://github.com/bluetox/pure_dsa" }
 ## 📦 Usage
 
 ```rust
-use pure_dsa::Algorithm;
+use pure_dsa::{ Algorithm, Keypair, Signature };
 
 let algo = Algorithm::Mode3;
 let keypair: Keypair = algo.generate();

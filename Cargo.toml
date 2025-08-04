@@ -24,7 +24,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default= ["wasm"]
+default= ["zeroize", "random"]
 random = []
 no_std = [] 
 zeroize = ["dep:zeroize"]
