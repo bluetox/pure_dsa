@@ -41,7 +41,6 @@ pub fn crypto_sign_keypair<P: DilithiumParams, R: RngCore>(
     let mut seed: [u8; SEEDBYTES] = [0; SEEDBYTES];
 
     randombytes(&mut seed, rng);
-    seed = [0; SEEDBYTES];
 
     shake256(&mut seedbuf, &seed, 2 * SEEDBYTES + CRHBYTES, SEEDBYTES);
   
@@ -83,12 +82,12 @@ pub fn crypto_sign_keypair<P: DilithiumParams, R: RngCore>(
   
 
   shake256(&mut tr, &pk[..P::crypto_publickeybytes()], SEEDBYTES, P::PUBLIC_KEY_BYTES);
-  //// 8. Write secret key
+
   pack_sk::<P>(sk, rho_slice, &tr, key_slice, &t0, &s1, &s2);
   return 0;
 }
 
-pub fn crypto_sign_signature<P: DilithiumParams>(sig: &mut [u8], m: &[u8], sk: &[u8]) {
+pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: &[u8], sk: &[u8], rng: &mut R) {
 
   let mut keymu = [0u8; SEEDBYTES + CRHBYTES];
 
@@ -103,7 +102,8 @@ pub fn crypto_sign_signature<P: DilithiumParams>(sig: &mut [u8], m: &[u8], sk: &
   let mut state = KeccakState::default();
   let mut rho = [0u8; SEEDBYTES];
   let mut tr = [0u8; SEEDBYTES];
-  let rhoprime = [0u8; CRHBYTES];
+
+  let mut rhoprime = [0u8; CRHBYTES];
 
   unpack_sk::<P>(
     &mut rho,
@@ -115,18 +115,16 @@ pub fn crypto_sign_signature<P: DilithiumParams>(sig: &mut [u8], m: &[u8], sk: &
     &sk,
   );
   
-
-  // Compute CRH(tr, msg)
   state.shake256_absorb(&tr, SEEDBYTES);
   state.shake256_absorb(m, m.len());
   state.shake256_finalize();
   state.shake256_squeeze(&mut keymu[SEEDBYTES..], CRHBYTES);
   
-  if true { // TODO Randomized signing 
-    //randombytes(&mut rhoprime);
-  } else {
-    //shake256(&mut rhoprime, CRHBYTES, &keymu, SEEDBYTES + CRHBYTES);
-  }
+  #[cfg(feature = "random")]
+  randombytes(&mut rhoprime, rng);
+
+  #[cfg(not(feature = "random"))]
+  shake256(&mut rhoprime, &keymu, CRHBYTES, SEEDBYTES + CRHBYTES);
 
   // Expand matrix and transform vectors
   polyvec_matrix_expand::<P>(&mut mat, &rho);

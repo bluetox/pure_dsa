@@ -11,3 +11,7 @@ rand_core = "0.6"
 [lib]
 name = "pure_dsa"
 path = "src/lib.rs"
+
+[features]
+default= ["random"]
+random = []

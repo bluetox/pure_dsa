@@ -54,7 +54,6 @@ pub fn store64(u: u64, x: &mut [u8]) {
 }
 
 pub fn keccakf1600_state_permute(state: &mut [u64]) {
-  //copyFromState(A, state)
   let mut aba = state[0];
   let mut abe = state[1];
   let mut abi = state[2];
@@ -82,14 +81,12 @@ pub fn keccakf1600_state_permute(state: &mut [u64]) {
   let mut asu = state[24];
 
   for round in (0..NROUNDS).step_by(2) {
-    //    prepareTheta
     let mut bca = aba ^ aga ^ aka ^ ama ^ asa;
     let mut bce = abe ^ age ^ ake ^ ame ^ ase;
     let mut bci = abi ^ agi ^ aki ^ ami ^ asi;
     let mut bco = abo ^ ago ^ ako ^ amo ^ aso;
     let mut bcu = abu ^ agu ^ aku ^ amu ^ asu;
 
-    //thetaRhoPiChiIotaPrepareTheta(round  , A, E)
     let mut da = bcu ^ rol(bce, 1);
     let mut de = bca ^ rol(bci, 1);
     let mut di = bce ^ rol(bco, 1);
@@ -177,14 +174,12 @@ pub fn keccakf1600_state_permute(state: &mut [u64]) {
     let mut eso = bco ^ ((!bcu) & bca);
     let mut esu = bcu ^ ((!bca) & bce);
 
-    //    prepareTheta
     bca = eba ^ ega ^ eka ^ ema ^ esa;
     bce = ebe ^ ege ^ eke ^ eme ^ ese;
     bci = ebi ^ egi ^ eki ^ emi ^ esi;
     bco = ebo ^ ego ^ eko ^ emo ^ eso;
     bcu = ebu ^ egu ^ eku ^ emu ^ esu;
 
-    //thetaRhoPiChiIotaPrepareTheta(round+1, E, A)
     da = bcu ^ rol(bce, 1);
     de = bca ^ rol(bci, 1);
     di = bce ^ rol(bco, 1);
@@ -433,7 +428,6 @@ impl KeccakState {
     }
 
     pub fn shake128_squeezeblocks(&mut self, out: &mut [u8], nblocks: usize) {
-        // out must have at least nblocks * SHAKE128_RATE bytes
         keccak_squeezeblocks(out, nblocks, &mut self.s, SHAKE128_RATE);
     }
 
@@ -459,7 +453,6 @@ impl KeccakState {
     }
 }
 
-// Non-incremental SHAKE256 (one-shot) function
 pub fn shake256(out: &mut [u8], input: &[u8], mut outlen: usize, inlen: usize) {
     let mut state = KeccakState::default();
     state.shake256_absorb_once(input, inlen);
@@ -469,5 +462,3 @@ pub fn shake256(out: &mut [u8], input: &[u8], mut outlen: usize, inlen: usize) {
     let idx = nblocks * SHAKE256_RATE;
     state.shake256_squeeze(&mut out[idx..], outlen);
 }
-
-// Non-incremental SHA3-256 hash function

@@ -95,7 +95,7 @@ impl Keypair {
         match self {
             Keypair::Mode2(_, sk) => {
                 let mut sig = [0u8; Mode2::SIGNBYTES];
-                crypto_sign_signature::<Mode2>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode2,
                     bytes: sig.to_vec(),
@@ -103,7 +103,7 @@ impl Keypair {
             }
             Keypair::Mode3(_, sk) => {
                 let mut sig = [0u8; Mode3::SIGNBYTES];
-                crypto_sign_signature::<Mode3>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode3,
                     bytes: sig.to_vec(),
@@ -111,7 +111,7 @@ impl Keypair {
             }
             Keypair::Mode5(_, sk) => {
                 let mut sig = [0u8; Mode5::SIGNBYTES];
-                crypto_sign_signature::<Mode5>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode5,
                     bytes: sig.to_vec(),
@@ -124,17 +124,17 @@ impl Keypair {
         match self {
             Keypair::Mode2(_, _) => {
                 let mut sig = vec![0u8; Mode2::SIGNBYTES];
-                crypto_sign_signature::<Mode2>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
                 sig
             }
             Keypair::Mode3(_, _) => {
                 let mut sig = vec![0u8; Mode3::SIGNBYTES];
-                crypto_sign_signature::<Mode3>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
                 sig
             }
             Keypair::Mode5(_, _) => {
                 let mut sig = vec![0u8; Mode5::SIGNBYTES];
-                crypto_sign_signature::<Mode5>(&mut sig, msg, sk);
+                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
                 sig
             }
         }

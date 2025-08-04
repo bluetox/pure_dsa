@@ -3,14 +3,10 @@ use crate::polyvec::*;
 use crate::poly::*;
 
 pub fn pack_pk<P: DilithiumParams>(pk: &mut [u8], rho: &[u8], t1: &Polyveck) {
-
-    // Copy rho into beginning of pk
     pk[..P::SEEDBYTES].copy_from_slice(rho);
 
-    // Offset pointer
     let mut offset = P::SEEDBYTES;
 
-    // Pack each t1[i]
     let t1_vec = vec_from_polyveck(t1);
     for i in 0..P::K {
         polyt1_pack(
@@ -100,8 +96,6 @@ for i in 0..P::L {
   }
 }
 
-
-/// Bit-pack signature sig = (c, z, h).
 pub fn pack_sig<P: DilithiumParams>(sig: &mut [u8], c: Option<&[u8]>, z: &Polyvecl, h: &Polyveck) {
     let z_vec = vec_from_polyvecl(z);
     let h_vec = vec_from_polyveck(h);
@@ -117,7 +111,6 @@ pub fn pack_sig<P: DilithiumParams>(sig: &mut [u8], c: Option<&[u8]>, z: &Polyve
     polyz_pack::<P>(&mut sig[idx + i * P::polyz_packedbytes()..], &z_vec[i]);
   }
   idx += P::L * P::polyz_packedbytes();
-  // Encode H
   sig[idx..idx + P::OMEGA + P::K].copy_from_slice(&vec![0u8; P::OMEGA + P::K]);
 
   let mut k = 0;
@@ -132,7 +125,6 @@ pub fn pack_sig<P: DilithiumParams>(sig: &mut [u8], c: Option<&[u8]>, z: &Polyve
   }
 }
 
-/// Unpack signature sig = (z, h, c).
 pub fn unpack_sig<P: DilithiumParams>(
   c: &mut [u8],
   z: &mut Polyvecl,
@@ -150,14 +142,12 @@ pub fn unpack_sig<P: DilithiumParams>(
   }
   idx += P::L * P::polyz_packedbytes();
 
-  // Decode h
   let mut k = 0usize;
   for i in 0..P::K {
     if sig[idx + P::OMEGA + i] < k as u8 || sig[idx + P::OMEGA + i] > P::OMEGA as u8 {
       return Err("INVALID OMEGA".to_string());
     }
     for j in k..sig[idx + P::OMEGA + i] as usize {
-      // Coefficients are ordered for strong unforgeability
       if j > k && sig[idx + j as usize] <= sig[idx + j as usize - 1] {
         return Err("INVALID H".to_string());
       }
@@ -166,7 +156,6 @@ pub fn unpack_sig<P: DilithiumParams>(
     k = sig[idx + P::OMEGA + i] as usize;
   }
 
-  // Extra indices are zero for strong unforgeability
   for j in k..P::OMEGA {
     if sig[idx + j as usize] > 0 {
       return Err("INVALID H".to_string());
