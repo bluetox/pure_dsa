@@ -8,6 +8,9 @@ use crate::{
   fips202::*
 };
 
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
 pub const SEEDBYTES: usize = 32;
 pub const CRHBYTES: usize = 64;
 pub const TRBYTES: usize = 64;
@@ -22,7 +25,8 @@ pub const STREAM128_BLOCKBYTES: usize = SHAKE128_RATE;
 pub const STREAM256_BLOCKBYTES: usize = SHAKE256_RATE;
 pub const D_SHL: i32 = 1i32 << (D - 1);
 
-#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
+#[derive(Clone, Debug)]
 pub struct Poly {
   pub coeffs: [i32; N],
 }
@@ -84,7 +88,7 @@ pub fn poly_power2round<P: DilithiumParams>(a1: &mut Poly, a0: &mut Poly, _a: &P
 }
 
 
-pub fn poly_decompose<P: DilithiumParams>(a1: &mut Poly, a0: &mut Poly, &a: &Poly) {
+pub fn poly_decompose<P: DilithiumParams>(a1: &mut Poly, a0: &mut Poly, a: &Poly) {
   for i in 0..N {
     a1.coeffs[i] = decompose::<P>(&mut a0.coeffs[i], a.coeffs[i]);
   }

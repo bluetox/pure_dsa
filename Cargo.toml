@@ -7,7 +7,7 @@ edition = "2024"
 hex = "0.4.3"
 rand = { version = "0.8", features = ["std", "getrandom"] }
 rand_core = "0.6"
-zeroize = "1.8.1"
+zeroize = { version = "1.8.1", optional = true, features = ["zeroize_derive"]}
 
 [dev-dependencies]
 criterion = "0.5"
@@ -21,6 +21,7 @@ name = "pure_dsa"
 path = "src/lib.rs"
 
 [features]
-default= ["random", "no_std"]
+default= ["random", "zeroize"]
 random = []
 no_std = [] 
+zeroize = ["dep:zeroize"]

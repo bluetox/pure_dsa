@@ -58,7 +58,7 @@ pub fn crypto_sign_keypair<P: DilithiumParams, R: RngCore>(
   polyvecl_uniform_eta::<P>(&mut s1, rhoprime_slice, 0);
   
   polyveck_uniform_eta::<P>(&mut s2, rhoprime_slice, P::L as u16);
-  let mut s1hat = s1;
+  let mut s1hat = s1.clone();
   polyvecl_ntt::<P>(&mut s1hat);
   
   
@@ -135,7 +135,7 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
     polyvecl_uniform_gamma1::<P>(&mut y, &rhoprime, nonce);
     nonce += 1;
 
-    let mut z = y;
+    let mut z = y.clone();
     polyvecl_ntt::<P>(&mut z);
     polyvec_matrix_pointwise_montgomery::<P>(&mut w1, &mat, &z);
     polyveck_reduce::<P>(&mut w1);

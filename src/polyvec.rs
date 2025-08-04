@@ -2,45 +2,50 @@ use crate::{
   poly::*, 
   params::DilithiumParams
 };
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Copy, Clone, Debug)]
+
+#[derive(Clone, Debug)]
 pub enum Polyveck {
     Mode2(PolyveckStruct<4>),
     Mode3(PolyveckStruct<6>),
     Mode5(PolyveckStruct<8>)
 }
-
-#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
+#[derive(Clone, Debug)]
 pub struct PolyveckStruct<const K: usize> {
     pub vec: [Poly; K],
 }
 
 impl<const K: usize> Default for PolyveckStruct<K> {
-  fn default() -> Self {
-    PolyveckStruct {
-      vec: [Poly::default(); K],
+    fn default() -> Self {
+        PolyveckStruct {
+            vec: core::array::from_fn(|_| Poly::default()),
+        }
     }
-  }
 }
-#[derive(Copy, Clone, Debug)]
+
+
+#[derive(Clone, Debug)]
 pub enum Polyvecl {
     Mode2(PolyveclStruct<4>),
     Mode3(PolyveclStruct<5>),
     Mode5(PolyveclStruct<7>)
 }
 
-
-#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
+#[derive(Clone, Debug)]
 pub struct PolyveclStruct<const K: usize> {
     pub vec: [Poly; K],
 }
 
-impl<const L: usize> Default for PolyveclStruct<L> {
-  fn default() -> Self {
-    PolyveclStruct {
-      vec: [Poly::default(); L],
+impl<const K: usize> Default for PolyveclStruct<K> {
+    fn default() -> Self {
+        PolyveclStruct {
+            vec: core::array::from_fn(|_| Poly::default()),
+        }
     }
-  }
 }
 
 #[inline(always)]

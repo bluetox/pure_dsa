@@ -26,7 +26,7 @@ pub(crate) struct PolyUniformGamma1BufferStruct<const N: usize> {
     pub buf: [u8; N],
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub enum Mat {
     Mode2([Polyvecl; 4]),
     Mode3([Polyvecl; 6]),
@@ -81,13 +81,13 @@ pub trait DilithiumParams {
         }
     }
     fn mat() -> Mat {
-        match Self::K {
-            4 => Mat::Mode2([Self::polyveclnew(); 4]),
-            6 => Mat::Mode3([Self::polyveclnew(); 6]),
-            8 => Mat::Mode5([Self::polyveclnew(); 8]),
-            _ => panic!("Invalid K value"),
-        }
+    match Self::K {
+        4 => Mat::Mode2(core::array::from_fn(|_| Self::polyveclnew())),
+        6 => Mat::Mode3(core::array::from_fn(|_| Self::polyveclnew())),
+        8 => Mat::Mode5(core::array::from_fn(|_| Self::polyveclnew())),
+        _ => panic!("Invalid K value"),
     }
+}
 
     fn polyz_packedbytes() -> usize {
         if Self::GAMMA1 == (1 << 17) {

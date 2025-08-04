@@ -5,6 +5,10 @@ use rand::{
     RngCore
 };
 
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+
 pub enum Algorithm {
     Mode2,
     Mode3,
@@ -83,7 +87,8 @@ impl Algorithm {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
+#[derive(Clone, Debug)]
 pub enum Keypair {
     Mode2([u8; Mode2::PUBLIC_KEY_BYTES], [u8; Mode2::SECRET_KEY_BYTES]),
     Mode3([u8; Mode3::PUBLIC_KEY_BYTES], [u8; Mode3::SECRET_KEY_BYTES]),
@@ -97,7 +102,6 @@ impl Keypair {
                 let mut sig = [0u8; Mode2::SIGNBYTES];
                 crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
-                    _mode: Algorithm::Mode2,
                     bytes: SignType::SignMode2(sig)
                 }
             }
@@ -105,7 +109,6 @@ impl Keypair {
                 let mut sig = [0u8; Mode3::SIGNBYTES];
                 crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
-                    _mode: Algorithm::Mode3,
                     bytes: SignType::SignMode3(sig)
                 }
             }
@@ -113,7 +116,6 @@ impl Keypair {
                 let mut sig = [0u8; Mode5::SIGNBYTES];
                 crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
-                    _mode: Algorithm::Mode5,
                     bytes: SignType::SignMode5(sig),
                 }
             }
@@ -156,9 +158,8 @@ impl Keypair {
         }
     }
 }
-
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct Signature {
-    _mode: Algorithm,
     bytes: SignType
 }
 
@@ -173,6 +174,7 @@ impl Signature {
     }
 }
 
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 enum SignType {
     SignMode2([u8; 2420]),
     SignMode3([u8; 3293]),
