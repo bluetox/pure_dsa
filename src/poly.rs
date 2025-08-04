@@ -217,18 +217,19 @@ pub const fn poly_uniform_eta_nblocks(eta: usize) -> usize {
 
 #[allow(non_snake_case)]
 pub fn poly_uniform_eta<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u16) {
-  let POLY_UNIFORM_ETA_NBLOCKS: usize = poly_uniform_eta_nblocks(P::ETA);
-  let buflen: usize = POLY_UNIFORM_ETA_NBLOCKS * STREAM256_BLOCKBYTES;
   
-  let mut buf = vec![0u8; buflen];
+  let mut max = [0u8; 362];
+  
+  let mut buf = &mut max[..poly_uniform_eta_nblocks(P::ETA) * STREAM256_BLOCKBYTES];
+  let buf_len = buf.len();
   let mut state = KeccakState::default();
   state.dilithium_shake256_stream_init(seed, nonce);
   state.shake256_squeezeblocks(
-    &mut buf,
-    POLY_UNIFORM_ETA_NBLOCKS
+    buf,
+    poly_uniform_eta_nblocks(P::ETA)
   );
 
-  let mut ctr = rej_eta::<P>(&mut a.coeffs, N, &buf, buflen);
+  let mut ctr = rej_eta::<P>(&mut a.coeffs, N, &buf, buf_len);
 
   while ctr < P::N as u32 {
     state.shake256_squeezeblocks(&mut buf, 1);
@@ -240,19 +241,19 @@ pub fn poly_uniform_eta<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u1
     );
   }
 }
-fn poly_uniform_gamma1_nblocks<P: DilithiumParams>() -> usize {
-  let polyz_packedbytes = P::polyz_packedbytes();
-  (polyz_packedbytes + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES
-}
+
 
 pub fn poly_uniform_gamma1<P: DilithiumParams>(a: &mut Poly, seed: &[u8], nonce: u16) {
-  let mut buf = vec![0u8; poly_uniform_gamma1_nblocks::<P>() * STREAM256_BLOCKBYTES];
+  let mut poly_buf = P::poly_uniform_gamma1_buffer();
+  
+  let mut buf = poly_buf.buf();
+
   let mut state = KeccakState::default();
 
   state.dilithium_shake256_stream_init(seed, nonce);
   state.shake256_squeezeblocks(
     &mut buf,
-    poly_uniform_gamma1_nblocks::<P>()
+    P::POLY_UNIFORM_GAMMA1_NBLOCKS
   );
   polyz_unpack::<P>(a, &mut buf);
 }

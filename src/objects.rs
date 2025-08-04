@@ -60,7 +60,7 @@ impl Algorithm {
         }
     }
 
-    pub fn verify(&self, signature: &Signature, msg: &[u8], public_key: &[u8]) -> Result<(), String> {
+    pub fn verify(&self, signature: &Signature, msg: &[u8], public_key: &[u8]) -> Result<(), &'static str> {
         match self {
             Algorithm::Mode2 => {
                 crypto_sign_verify::<Mode2>(signature.bytes(), msg, public_key)
@@ -74,7 +74,7 @@ impl Algorithm {
         }
     }
 
-    pub fn verify_raw(&self, signature: &[u8], msg: &[u8], public_key: &[u8]) -> Result<(), String> {
+    pub fn verify_raw(&self, signature: &[u8], msg: &[u8], public_key: &[u8]) -> Result<(), &'static str> {
         match self {
             Algorithm::Mode2 => crypto_sign_verify::<Mode2>(signature, msg, public_key),
             Algorithm::Mode3 => crypto_sign_verify::<Mode3>(signature, msg, public_key),
@@ -98,7 +98,7 @@ impl Keypair {
                 crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode2,
-                    bytes: sig.to_vec(),
+                    bytes: SignType::SignMode2(sig)
                 }
             }
             Keypair::Mode3(_, sk) => {
@@ -106,7 +106,7 @@ impl Keypair {
                 crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode3,
-                    bytes: sig.to_vec(),
+                    bytes: SignType::SignMode3(sig)
                 }
             }
             Keypair::Mode5(_, sk) => {
@@ -114,28 +114,28 @@ impl Keypair {
                 crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
                 Signature {
                     _mode: Algorithm::Mode5,
-                    bytes: sig.to_vec(),
+                    bytes: SignType::SignMode5(sig),
                 }
             }
         }
     }
-
+    #[cfg(not(feature = "no_std"))]
     pub fn sign_to_slice(&self, msg: &[u8], sk: &[u8]) -> Vec<u8> {
         match self {
             Keypair::Mode2(_, _) => {
-                let mut sig = vec![0u8; Mode2::SIGNBYTES];
+                let mut sig = [0u8; Mode2::SIGNBYTES];
                 crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
-                sig
+                sig.to_vec()
             }
             Keypair::Mode3(_, _) => {
-                let mut sig = vec![0u8; Mode3::SIGNBYTES];
+                let mut sig = [0u8; Mode3::SIGNBYTES];
                 crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
-                sig
+                sig.to_vec()
             }
             Keypair::Mode5(_, _) => {
-                let mut sig = vec![0u8; Mode5::SIGNBYTES];
+                let mut sig = [0u8; Mode5::SIGNBYTES];
                 crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
-                sig
+                sig.to_vec()
             }
         }
     }
@@ -159,13 +159,22 @@ impl Keypair {
 
 pub struct Signature {
     _mode: Algorithm,
-    bytes: Vec<u8>,
+    bytes: SignType
 }
 
 impl Signature {
     #[inline(always)]
     pub fn bytes(&self) -> &[u8] {
-        self.bytes.as_slice()
+        match &self.bytes {
+            SignType::SignMode2(arr) => &arr[..],
+            SignType::SignMode3(arr) => &arr[..],
+            SignType::SignMode5(arr) => &arr[..],
+        }
     }
-    
+}
+
+enum SignType {
+    SignMode2([u8; 2420]),
+    SignMode3([u8; 3293]),
+    SignMode5([u8; 4595])
 }

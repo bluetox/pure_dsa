@@ -196,8 +196,10 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
   sig: &[u8],
   m: &[u8],
   pk: &[u8],
-) -> Result<(), String> {
-  let mut buf = vec![0u8; P::K * P::polyw1_packedbytes()];
+) -> Result<(), &'static str> {
+  let mut max = [0u8; 8 * 128];
+  let needed = P::K * P::polyw1_packedbytes();
+  let mut buf = &mut max[..needed];
   let mut rho = [0u8; SEEDBYTES];
   let mut mu = [0u8; CRHBYTES];
   let mut c = [0u8; SEEDBYTES];
@@ -214,7 +216,7 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
   let mut state = KeccakState::default(); // shake256_init()
 
   if sig.len() != P::SIGNBYTES {
-    return Err("Signature length mismatch".to_string());
+    return Err("Signature length mismatch");
   }
 
   unpack_pk::<P>(&mut rho, &mut t1, pk);
@@ -222,7 +224,7 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
     return Err(e);
   }
   if polyvecl_chknorm::<P>(&z, (P::GAMMA1 - P::BETA) as i32) > 0 {
-    return Err("Invalid z".to_string());
+    return Err("Invalid z");
   }
 
   shake256(&mut mu, pk, SEEDBYTES, P::PUBLIC_KEY_BYTES);
@@ -259,7 +261,7 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
   state.shake256_squeeze(&mut c2, SEEDBYTES);
 
   if c != c2 {
-    Err("Invalid signature".to_string())
+    Err("Invalid signature")
   } else {
     Ok(())
   }

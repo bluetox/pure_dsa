@@ -111,7 +111,8 @@ pub fn pack_sig<P: DilithiumParams>(sig: &mut [u8], c: Option<&[u8]>, z: &Polyve
     polyz_pack::<P>(&mut sig[idx + i * P::polyz_packedbytes()..], &z_vec[i]);
   }
   idx += P::L * P::polyz_packedbytes();
-  sig[idx..idx + P::OMEGA + P::K].copy_from_slice(&vec![0u8; P::OMEGA + P::K]);
+  let max = [0u8; 7 * 75];
+  sig[idx..idx + P::OMEGA + P::K].copy_from_slice(&max[.. P::OMEGA + P::K]);
 
   let mut k = 0;
   for i in 0..P::K {
@@ -130,7 +131,7 @@ pub fn unpack_sig<P: DilithiumParams>(
   z: &mut Polyvecl,
   h: &mut Polyveck,
   sig: &[u8],
-) -> Result<(), String> {
+) -> Result<(), &'static str> {
   let mut idx = 0usize;
     let z_vec = vec_from_polyvecl_mut(z);
     let h_vec = vec_from_polyveck_mut(h);
@@ -145,11 +146,11 @@ pub fn unpack_sig<P: DilithiumParams>(
   let mut k = 0usize;
   for i in 0..P::K {
     if sig[idx + P::OMEGA + i] < k as u8 || sig[idx + P::OMEGA + i] > P::OMEGA as u8 {
-      return Err("INVALID OMEGA".to_string());
+      return Err("INVALID OMEGA");
     }
     for j in k..sig[idx + P::OMEGA + i] as usize {
       if j > k && sig[idx + j as usize] <= sig[idx + j as usize - 1] {
-        return Err("INVALID H".to_string());
+        return Err("INVALID H");
       }
       h_vec[i].coeffs[sig[idx + j] as usize] = 1;
     }
@@ -158,7 +159,7 @@ pub fn unpack_sig<P: DilithiumParams>(
 
   for j in k..P::OMEGA {
     if sig[idx + j as usize] > 0 {
-      return Err("INVALID H".to_string());
+      return Err("INVALID H");
     }
   }
 

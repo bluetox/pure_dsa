@@ -4,6 +4,27 @@ use crate::polyvec::{
     Polyvecl, 
     PolyveclStruct
 };
+pub const SHAKE256_RATE: usize = 136;
+pub const STREAM256_BLOCKBYTES: usize = SHAKE256_RATE;
+
+pub enum PolyUniformGamma1Buffer {
+    Mode2(PolyUniformGamma1BufferStruct<{(576 + 136 - 1) / 136 * 136}>),
+    Mode3(PolyUniformGamma1BufferStruct<{(640 + 136 - 1) / 136 * 136}>),
+    Mode5(PolyUniformGamma1BufferStruct<{(640 + 136 - 1) / 136 * 136}>),
+}
+
+impl PolyUniformGamma1Buffer {
+    pub fn buf(&mut self) -> &mut [u8] {
+        match self {
+            PolyUniformGamma1Buffer::Mode2(v) => &mut v.buf[..],
+            PolyUniformGamma1Buffer::Mode3(v) => &mut v.buf[..],
+            PolyUniformGamma1Buffer::Mode5(v) => &mut v.buf[..],
+        }
+    }
+}
+pub(crate) struct PolyUniformGamma1BufferStruct<const N: usize> {
+    pub buf: [u8; N],
+}
 
 #[derive(Copy, Clone)]
 pub enum Mat {
@@ -11,6 +32,9 @@ pub enum Mat {
     Mode3([Polyvecl; 6]),
     Mode5([Polyvecl; 8]),
 }
+
+
+
 
 pub trait DilithiumParams {
     const SEEDBYTES: usize = 32;
@@ -45,9 +69,17 @@ pub trait DilithiumParams {
             + Self::L * Self::POLYETA_PACKEDBYTES
             + Self::K * Self::POLYETA_PACKEDBYTES
             + Self::K * Self::POLYT0_PACKEDBYTES;
+    const POLY_UNIFORM_GAMMA1_NBLOCKS: usize = (Self::POLYZ_PACKEDBYTES + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES;
     fn polyvecknew() -> Polyveck;
     fn polyveclnew() -> Polyvecl;
-
+     fn poly_uniform_gamma1_buffer() -> PolyUniformGamma1Buffer {
+        match Self::K {
+            4 => PolyUniformGamma1Buffer::Mode2(PolyUniformGamma1BufferStruct { buf: [0u8; { (576 + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES * STREAM256_BLOCKBYTES }] }),
+            6 => PolyUniformGamma1Buffer::Mode3(PolyUniformGamma1BufferStruct { buf: [0u8; { (640 + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES * STREAM256_BLOCKBYTES}] }),
+            8 => PolyUniformGamma1Buffer::Mode5(PolyUniformGamma1BufferStruct { buf: [0u8; { (640 + STREAM256_BLOCKBYTES - 1) / STREAM256_BLOCKBYTES * STREAM256_BLOCKBYTES}] }),
+            _ => panic!("Invalid GAMMA1 or POLYZ_PACKEDBYTES for gamma1 buffer"),
+        }
+    }
     fn mat() -> Mat {
         match Self::K {
             4 => Mat::Mode2([Self::polyveclnew(); 4]),
@@ -101,7 +133,6 @@ impl DilithiumParams for Mode2 {
     fn polyveclnew() -> Polyvecl {
         Polyvecl::Mode2(PolyveclStruct::default())
     }
-
 }
 
 pub struct Mode3;

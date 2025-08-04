@@ -7,11 +7,20 @@ edition = "2024"
 hex = "0.4.3"
 rand = { version = "0.8", features = ["std", "getrandom"] }
 rand_core = "0.6"
+zeroize = "1.8.1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "sign_bench"
+harness = false
 
 [lib]
 name = "pure_dsa"
 path = "src/lib.rs"
 
 [features]
-default= ["random"]
+default= ["random", "no_std"]
 random = []
+no_std = [] 
