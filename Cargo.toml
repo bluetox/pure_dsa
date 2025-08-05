@@ -8,8 +8,6 @@ hex = "0.4.3"
 rand = { version = "0.8", features = ["std", "getrandom"] }
 rand_core = "0.6"
 zeroize = { version = "1.8.1", optional = true, features = ["zeroize_derive"]}
-getrandom = { version = "0.2.10", features = ["js"], optional = true }
-wasm-bindgen = { version = "0.2.87", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
@@ -28,4 +26,3 @@ default= ["zeroize", "random"]
 random = []
 no_std = [] 
 zeroize = ["dep:zeroize"]
-wasm = ["wasm-bindgen", "getrandom/js"]

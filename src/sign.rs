@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use rand::RngCore;
+use zeroize::Zeroize;
 
 use crate::{
     randombytes::randombytes, 
@@ -39,11 +40,13 @@ pub fn crypto_sign_keypair<P: DilithiumParams, R: RngCore>(
     let mut mat_data = P::mat();
    
     let mut seed: [u8; SEEDBYTES] = [0; SEEDBYTES];
-
+    
     randombytes(&mut seed, rng);
 
     shake256(&mut seedbuf, &seed, 2 * SEEDBYTES + CRHBYTES, SEEDBYTES);
-  
+
+    seed.zeroize();
+
     let rho_slice = &seedbuf[..SEEDBYTES];
     let rhoprime_slice = &seedbuf[SEEDBYTES..SEEDBYTES + CRHBYTES];
     let key_slice = &seedbuf[SEEDBYTES + CRHBYTES..];
@@ -84,6 +87,9 @@ pub fn crypto_sign_keypair<P: DilithiumParams, R: RngCore>(
   shake256(&mut tr, &pk[..P::crypto_publickeybytes()], SEEDBYTES, P::PUBLIC_KEY_BYTES);
 
   pack_sk::<P>(sk, rho_slice, &tr, key_slice, &t0, &s1, &s2);
+  tr.zeroize();
+  seedbuf.zeroize();
+
   return 0;
 }
 
@@ -114,6 +120,7 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
     &mut s2,
     &sk,
   );
+  
   
   state.shake256_absorb(&tr, SEEDBYTES);
   state.shake256_absorb(m, m.len());
@@ -188,6 +195,9 @@ pub fn crypto_sign_signature<P: DilithiumParams, R: RngCore>(sig: &mut [u8], m: 
     }
 
     pack_sig::<P>(sig, None, &z, &h);
+    rho.zeroize();
+    keymu.zeroize();
+    tr.zeroize();
     return;
   }
 }
@@ -259,10 +269,11 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
   state.shake256_absorb(&buf, P::K * P::polyw1_packedbytes());
   state.shake256_finalize();
   state.shake256_squeeze(&mut c2, SEEDBYTES);
-
+  
   if c != c2 {
     Err("Invalid signature")
   } else {
+    
     Ok(())
   }
 }

@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use crate::poly::SEEDBYTES;
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 const NROUNDS: usize = 24;
 pub const SHAKE128_RATE: usize = 168;
@@ -34,11 +36,71 @@ const KECCAKF_ROUND_CONSTANTS: [u64; NROUNDS] = [
   0x0000000080000001u64,
   0x8000000080008008u64,
 ];
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
+#[derive(Clone, Debug)]
+pub struct KeccakState {
+    pub s: [u64; 25],
+    pub pos: usize,
+}
+impl Default for KeccakState {
+  fn default() -> Self {
+    KeccakState {
+      s: [0u64; 25],
+      pos: 0usize,
+    }
+  }
+}
 
+impl KeccakState {
+    pub fn init(&mut self) {
+        self.s.fill(0);
+        self.pos = 0;
+    }
+
+    pub fn shake128_absorb(&mut self, input: &[u8]) {
+        keccak_absorb(self, SHAKE128_RATE, input, input.len());
+    }
+
+    pub fn shake128_finalize(&mut self) {
+        keccak_finalize(&mut self.s, self.pos, SHAKE128_RATE, 0x1F);
+        self.pos = SHAKE128_RATE;
+    }
+    pub fn shake128_squeeze(&mut self, out: &mut [u8]) {
+        self.pos = keccak_squeeze(out, SEEDBYTES, &mut self.s, self.pos, SHAKE128_RATE);
+    }
+
+    pub fn shake128_squeezeblocks(&mut self, out: &mut [u8], nblocks: usize) {
+        keccak_squeezeblocks(out, nblocks, &mut self.s, SHAKE128_RATE);
+    }
+
+    pub fn shake256_absorb(&mut self, input: &[u8], inlen: usize) {
+        keccak_absorb(self, SHAKE256_RATE, input, inlen);
+    }
+
+    pub fn shake256_finalize(&mut self) {
+        keccak_finalize(&mut self.s, self.pos, SHAKE256_RATE, 0x1F);
+        self.pos = SHAKE256_RATE;
+    }
+
+    pub fn shake256_squeeze(&mut self, out: &mut [u8], outlen: usize) {
+        self.pos = keccak_squeeze(out, outlen, &mut self.s, self.pos, SHAKE256_RATE);
+    }
+
+    pub fn shake256_absorb_once(&mut self, input: &[u8], inlen: usize) {
+        keccak_absorb_once(&mut self.s, SHAKE256_RATE, input, inlen,0x1F);
+        self.pos = SHAKE256_RATE;
+    }
+    pub fn shake256_squeezeblocks(&mut self, out: &mut [u8], nblocks: usize) {
+        keccak_squeezeblocks(out, nblocks, &mut self.s, SHAKE256_RATE);
+    }
+}
+
+#[inline(always)]
 fn rol(a: u64, offset: u32) -> u64 {
     (a << offset) ^ (a >> (64 - offset))
 }
 
+#[inline(always)]
 pub fn load64(x: &[u8]) -> u64 {
   let mut r = 0u64;
   for i in 0..8 {
@@ -47,6 +109,7 @@ pub fn load64(x: &[u8]) -> u64 {
   r
 }
 
+#[inline(always)]
 pub fn store64(u: u64, x: &mut [u8]) {
   for i in 0..8 {
     x[i] = (u >> 8 * i) as u8;
@@ -394,63 +457,6 @@ fn keccak_squeezeblocks(out: &mut [u8], mut nblocks: usize, s: &mut [u64], r: us
     idx += r;
     nblocks -= 1;
   }
-}
-#[derive(Copy, Clone, Debug)]
-pub struct KeccakState {
-    pub s: [u64; 25],
-    pub pos: usize,
-}
-impl Default for KeccakState {
-  fn default() -> Self {
-    KeccakState {
-      s: [0u64; 25],
-      pos: 0usize,
-    }
-  }
-}
-
-impl KeccakState {
-    pub fn init(&mut self) {
-        self.s.fill(0);
-        self.pos = 0;
-    }
-
-    pub fn shake128_absorb(&mut self, input: &[u8]) {
-        keccak_absorb(self, SHAKE128_RATE, input, input.len());
-    }
-
-    pub fn shake128_finalize(&mut self) {
-        keccak_finalize(&mut self.s, self.pos, SHAKE128_RATE, 0x1F);
-        self.pos = SHAKE128_RATE;
-    }
-    pub fn shake128_squeeze(&mut self, out: &mut [u8]) {
-        self.pos = keccak_squeeze(out, SEEDBYTES, &mut self.s, self.pos, SHAKE128_RATE);
-    }
-
-    pub fn shake128_squeezeblocks(&mut self, out: &mut [u8], nblocks: usize) {
-        keccak_squeezeblocks(out, nblocks, &mut self.s, SHAKE128_RATE);
-    }
-
-    pub fn shake256_absorb(&mut self, input: &[u8], inlen: usize) {
-        keccak_absorb(self, SHAKE256_RATE, input, inlen);
-    }
-
-    pub fn shake256_finalize(&mut self) {
-        keccak_finalize(&mut self.s, self.pos, SHAKE256_RATE, 0x1F);
-        self.pos = SHAKE256_RATE;
-    }
-
-    pub fn shake256_squeeze(&mut self, out: &mut [u8], outlen: usize) {
-        self.pos = keccak_squeeze(out, outlen, &mut self.s, self.pos, SHAKE256_RATE);
-    }
-
-    pub fn shake256_absorb_once(&mut self, input: &[u8], inlen: usize) {
-        keccak_absorb_once(&mut self.s, SHAKE256_RATE, input, inlen,0x1F);
-        self.pos = SHAKE256_RATE;
-    }
-    pub fn shake256_squeezeblocks(&mut self, out: &mut [u8], nblocks: usize) {
-        keccak_squeezeblocks(out, nblocks, &mut self.s, SHAKE256_RATE);
-    }
 }
 
 pub fn shake256(out: &mut [u8], input: &[u8], mut outlen: usize, inlen: usize) {
