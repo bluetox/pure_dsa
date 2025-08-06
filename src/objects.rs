@@ -41,6 +41,42 @@ impl Algorithm {
             }
         }
     }
+
+    pub fn load_from_bytes(&self, sk: &[u8], pk: &[u8]) -> Result<Keypair, String> {
+        match self {
+            Algorithm::Mode2 => {
+                if pk.len() != Mode2::PUBLIC_KEY_BYTES || sk.len() != Mode2::SECRET_KEY_BYTES {
+                    return Err("Invalid key lengths for Mode2".into());
+                }
+                let mut pk_buf = [0u8; Mode2::PUBLIC_KEY_BYTES];
+                let mut sk_buf = [0u8; Mode2::SECRET_KEY_BYTES];
+                pk_buf.copy_from_slice(pk);
+                sk_buf.copy_from_slice(sk);
+                Ok(Keypair::Mode2(pk_buf, sk_buf))
+            }
+            Algorithm::Mode3 => {
+                if pk.len() != Mode3::PUBLIC_KEY_BYTES || sk.len() != Mode3::SECRET_KEY_BYTES {
+                    return Err("Invalid key lengths for Mode3".into());
+                }
+                let mut pk_buf = [0u8; Mode3::PUBLIC_KEY_BYTES];
+                let mut sk_buf = [0u8; Mode3::SECRET_KEY_BYTES];
+                pk_buf.copy_from_slice(pk);
+                sk_buf.copy_from_slice(sk);
+                Ok(Keypair::Mode3(pk_buf, sk_buf))
+            }
+            Algorithm::Mode5 => {
+                if pk.len() != Mode5::PUBLIC_KEY_BYTES || sk.len() != Mode5::SECRET_KEY_BYTES {
+                    return Err("Invalid key lengths for Mode5".into());
+                }
+                let mut pk_buf = [0u8; Mode5::PUBLIC_KEY_BYTES];
+                let mut sk_buf = [0u8; Mode5::SECRET_KEY_BYTES];
+                pk_buf.copy_from_slice(pk);
+                sk_buf.copy_from_slice(sk);
+                Ok(Keypair::Mode5(pk_buf, sk_buf))
+            }
+        }
+    }
+
     pub fn generate_with_rng<R: RngCore>(&self, rng: &mut R) -> Keypair {
         match self {
             Algorithm::Mode2 => {
