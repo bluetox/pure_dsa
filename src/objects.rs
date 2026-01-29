@@ -1,13 +1,24 @@
-use crate::sign::*;
 use crate::params::*;
-use rand::{
-    rngs::OsRng,
-    RngCore
-};
+use crate::sign::*;
 
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+use rand::RngCore;
+
+#[cfg(target_arch = "wasm32")]
+use rand::{rngs::SmallRng, SeedableRng};
+
+#[cfg(not(target_arch = "wasm32"))]
+fn make_rng() -> impl RngCore {
+    rand::rngs::OsRng
+}
+
+#[cfg(target_arch = "wasm32")]
+fn make_rng() -> impl RngCore {
+    // now SeedableRng is in scope
+    SmallRng::from_entropy()
+}
 
 pub enum Algorithm {
     Mode2,
@@ -17,32 +28,11 @@ pub enum Algorithm {
 
 impl Algorithm {
     pub fn generate(&self) -> Keypair {
-        match self {
-            Algorithm::Mode2 => {
-                let mut pk = [0u8; Mode2::PUBLIC_KEY_BYTES];
-                let mut sk = [0u8; Mode2::SECRET_KEY_BYTES];
-                let mut rng = OsRng;
-                crypto_sign_keypair::<Mode2, OsRng>(&mut pk, &mut sk, &mut rng);
-                Keypair::Mode2(pk, sk)
-            }
-            Algorithm::Mode3 => {
-                let mut pk = [0u8; Mode3::PUBLIC_KEY_BYTES];
-                let mut sk = [0u8; Mode3::SECRET_KEY_BYTES];
-                let mut rng = OsRng;
-                crypto_sign_keypair::<Mode3, _>(&mut pk, &mut sk, &mut rng);
-                Keypair::Mode3(pk, sk)
-            }
-            Algorithm::Mode5 => {
-                let mut pk = [0u8; Mode5::PUBLIC_KEY_BYTES];
-                let mut sk = [0u8; Mode5::SECRET_KEY_BYTES];
-                let mut rng = OsRng;
-                crypto_sign_keypair::<Mode5, _>(&mut pk, &mut sk, &mut rng);
-                Keypair::Mode5(pk, sk)
-            }
-        }
+        let mut rng = make_rng();
+        self.generate_with_rng(&mut rng)
     }
 
-    pub fn load_from_bytes(&self, sk: &[u8], pk: &[u8]) -> Result<Keypair, String> {
+    pub fn load_from_bytes(&self, sk: &[u8], pk: &[u8]) -> Result<Keypair, &'static str> {
         match self {
             Algorithm::Mode2 => {
                 if pk.len() != Mode2::PUBLIC_KEY_BYTES || sk.len() != Mode2::SECRET_KEY_BYTES {
@@ -100,21 +90,25 @@ impl Algorithm {
         }
     }
 
-    pub fn verify(&self, signature: &Signature, msg: &[u8], public_key: &[u8]) -> Result<(), &'static str> {
+    pub fn verify(
+        &self,
+        signature: &Signature,
+        msg: &[u8],
+        public_key: &[u8],
+    ) -> Result<(), &'static str> {
         match self {
-            Algorithm::Mode2 => {
-                crypto_sign_verify::<Mode2>(signature.bytes(), msg, public_key)
-            },
-            Algorithm::Mode3 => {
-                crypto_sign_verify::<Mode3>(signature.bytes(), msg, public_key)
-            },
-            Algorithm::Mode5 => {
-                crypto_sign_verify::<Mode5>(signature.bytes(), msg, public_key)
-            },
+            Algorithm::Mode2 => crypto_sign_verify::<Mode2>(signature.bytes(), msg, public_key),
+            Algorithm::Mode3 => crypto_sign_verify::<Mode3>(signature.bytes(), msg, public_key),
+            Algorithm::Mode5 => crypto_sign_verify::<Mode5>(signature.bytes(), msg, public_key),
         }
     }
 
-    pub fn verify_raw(&self, signature: &[u8], msg: &[u8], public_key: &[u8]) -> Result<(), &'static str> {
+    pub fn verify_raw(
+        &self,
+        signature: &[u8],
+        msg: &[u8],
+        public_key: &[u8],
+    ) -> Result<(), &'static str> {
         match self {
             Algorithm::Mode2 => crypto_sign_verify::<Mode2>(signature, msg, public_key),
             Algorithm::Mode3 => crypto_sign_verify::<Mode3>(signature, msg, public_key),
@@ -133,24 +127,25 @@ pub enum Keypair {
 
 impl Keypair {
     pub fn sign(&self, msg: &[u8]) -> Signature {
+        let mut rng = make_rng(); // unified RNG
         match self {
             Keypair::Mode2(_, sk) => {
                 let mut sig = [0u8; Mode2::SIGNBYTES];
-                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut rng);
                 Signature {
-                    bytes: SignType::SignMode2(sig)
+                    bytes: SignType::SignMode2(sig),
                 }
             }
             Keypair::Mode3(_, sk) => {
                 let mut sig = [0u8; Mode3::SIGNBYTES];
-                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut rng);
                 Signature {
-                    bytes: SignType::SignMode3(sig)
+                    bytes: SignType::SignMode3(sig),
                 }
             }
             Keypair::Mode5(_, sk) => {
                 let mut sig = [0u8; Mode5::SIGNBYTES];
-                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut rng);
                 Signature {
                     bytes: SignType::SignMode5(sig),
                 }
@@ -159,25 +154,25 @@ impl Keypair {
     }
     #[cfg(not(feature = "no_std"))]
     pub fn sign_to_slice(&self, msg: &[u8], sk: &[u8]) -> Vec<u8> {
+        let mut rng = make_rng();
         match self {
             Keypair::Mode2(_, _) => {
                 let mut sig = [0u8; Mode2::SIGNBYTES];
-                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode2, _>(&mut sig, msg, sk, &mut rng);
                 sig.to_vec()
             }
             Keypair::Mode3(_, _) => {
                 let mut sig = [0u8; Mode3::SIGNBYTES];
-                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode3, _>(&mut sig, msg, sk, &mut rng);
                 sig.to_vec()
             }
             Keypair::Mode5(_, _) => {
                 let mut sig = [0u8; Mode5::SIGNBYTES];
-                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut OsRng);
+                crypto_sign_signature::<Mode5, _>(&mut sig, msg, sk, &mut rng);
                 sig.to_vec()
             }
         }
     }
-        
     pub fn public(&self) -> &[u8] {
         match self {
             Keypair::Mode2(pk, _) => pk,
@@ -196,7 +191,7 @@ impl Keypair {
 }
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct Signature {
-    bytes: SignType
+    bytes: SignType,
 }
 
 impl Signature {
@@ -214,5 +209,5 @@ impl Signature {
 enum SignType {
     SignMode2([u8; 2420]),
     SignMode3([u8; 3293]),
-    SignMode5([u8; 4595])
+    SignMode5([u8; 4595]),
 }
