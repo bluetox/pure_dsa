@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use pure_dsa::Algorithm; // adjust if your crate name is different
+use pure_dsa::Algorithm;
 
 fn bench_sign_verify(c: &mut Criterion) {
     let msg = b"benchmark message";

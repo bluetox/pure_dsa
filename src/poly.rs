@@ -459,7 +459,7 @@ pub fn polyt0_unpack(r: &mut Poly, a: &[u8]) {
 
     r.coeffs[8 * i + 7] = (a[13 * i + 11] as i32) >> 3;
     r.coeffs[8 * i + 7] |= (a[13 * i + 12] as i32) << 5;
-    r.coeffs[8 * i + 7] &= 0x1FFF; // TODO: Unnecessary mask?
+    r.coeffs[8 * i + 7] &= 0x1FFF;
 
     r.coeffs[8 * i + 0] = D_SHL - r.coeffs[8 * i + 0];
     r.coeffs[8 * i + 1] = D_SHL - r.coeffs[8 * i + 1];
@@ -530,7 +530,7 @@ pub fn polyz_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
       r.coeffs[4 * i + 3] = (a[9 * i + 6] as i32) >> 6;
       r.coeffs[4 * i + 3] |= (a[9 * i + 7] as i32) << 2;
       r.coeffs[4 * i + 3] |= (a[9 * i + 8] as i32) << 10;
-      r.coeffs[4 * i + 3] &= 0x3FFFF; // TODO: Unnecessary mask?
+      r.coeffs[4 * i + 3] &= 0x3FFFF;
 
       r.coeffs[4 * i + 0] = P::GAMMA1 as i32 - r.coeffs[4 * i + 0];
       r.coeffs[4 * i + 1] = P::GAMMA1 as i32 - r.coeffs[4 * i + 1];
@@ -547,7 +547,7 @@ pub fn polyz_unpack<P: DilithiumParams>(r: &mut Poly, a: &[u8]) {
       r.coeffs[2 * i + 1] = (a[5 * i + 2] as i32) >> 4;
       r.coeffs[2 * i + 1] |= (a[5 * i + 3] as i32) << 4;
       r.coeffs[2 * i + 1] |= (a[5 * i + 4] as i32) << 12;
-      r.coeffs[2 * i + 0] &= 0xFFFFF; // TODO: Unnecessary mask?
+      r.coeffs[2 * i + 0] &= 0xFFFFF;
 
       r.coeffs[2 * i + 0] = P::GAMMA1 as i32 - r.coeffs[2 * i + 0];
       r.coeffs[2 * i + 1] = P::GAMMA1 as i32 - r.coeffs[2 * i + 1];

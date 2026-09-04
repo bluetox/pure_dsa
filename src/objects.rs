@@ -16,7 +16,6 @@ fn make_rng() -> impl RngCore {
 
 #[cfg(target_arch = "wasm32")]
 fn make_rng() -> impl RngCore {
-    // now SeedableRng is in scope
     SmallRng::from_entropy()
 }
 
@@ -127,7 +126,7 @@ pub enum Keypair {
 
 impl Keypair {
     pub fn sign(&self, msg: &[u8]) -> Signature {
-        let mut rng = make_rng(); // unified RNG
+        let mut rng = make_rng();
         match self {
             Keypair::Mode2(_, sk) => {
                 let mut sig = [0u8; Mode2::SIGNBYTES];

@@ -228,7 +228,7 @@ pub fn crypto_sign_verify<P: DilithiumParams>(
     let mut mat = mat_from(&mut mat_data);
     let mut z = P::polyveclnew();
     let (mut t1, mut w1, mut h) = (P::polyvecknew(), P::polyvecknew(), P::polyvecknew());
-    let mut state = KeccakState::default(); // shake256_init()
+    let mut state = KeccakState::default();
 
     if sig.len() != P::SIGNBYTES {
         return Err("Signature length mismatch");
